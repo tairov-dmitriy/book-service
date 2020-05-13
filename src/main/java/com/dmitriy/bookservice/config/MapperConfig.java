@@ -31,4 +31,36 @@ public class MapperConfig {
                 SimpleBeanPropertyFilter.serializeAllExcept("authors")));
         return mapperWithoutAuthorsRef;
     }
+
+    @Bean("mapperWithoutOrdersRef")
+    ObjectMapper mapperWithoutOrdersRef() {
+        ObjectMapper mapperWithoutAuthorsRef = new ObjectMapper();
+        mapperWithoutAuthorsRef.setFilterProvider(new SimpleFilterProvider().addFilter("nestedFilter",
+                SimpleBeanPropertyFilter.serializeAllExcept("orders")));
+        return mapperWithoutAuthorsRef;
+    }
+
+    @Bean("mapperWithoutBooksAndOrdersRef")
+    ObjectMapper mapperWithoutBooksAndOrdersRef() {
+        ObjectMapper mapperWithoutBooksAndOrdersRef = new ObjectMapper();
+        mapperWithoutBooksAndOrdersRef.setFilterProvider(new SimpleFilterProvider().addFilter("nestedFilter",
+                SimpleBeanPropertyFilter.serializeAllExcept("books", "orders")));
+        return mapperWithoutBooksAndOrdersRef;
+    }
+
+    @Bean("mapperWithoutAuthorsAndOrdersRef")
+    ObjectMapper mapperWithoutAuthorsAndOrdersRef() {
+        ObjectMapper mapperWithoutAuthorsAndOrdersRef = new ObjectMapper();
+        mapperWithoutAuthorsAndOrdersRef.setFilterProvider(new SimpleFilterProvider().addFilter("nestedFilter",
+                SimpleBeanPropertyFilter.serializeAllExcept("authors", "orders")));
+        return mapperWithoutAuthorsAndOrdersRef;
+    }
+
+    @Bean("mapperWithoutAuthorsAndCustomerRef")
+    ObjectMapper mapperWithoutAuthorsAndCustomerRef() {
+        ObjectMapper mapperWithoutAuthorsAndCustomerRef = new ObjectMapper();
+        mapperWithoutAuthorsAndCustomerRef.setFilterProvider(new SimpleFilterProvider().addFilter("nestedFilter",
+                SimpleBeanPropertyFilter.serializeAllExcept("authors", "customer")));
+        return mapperWithoutAuthorsAndCustomerRef;
+    }
 }

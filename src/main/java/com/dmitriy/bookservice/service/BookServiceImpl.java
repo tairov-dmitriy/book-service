@@ -27,6 +27,7 @@ public class BookServiceImpl implements BookService {
     private ObjectMapper mapperWithoutAuthorsRef;
 
     @Transactional
+    @Override
     public String findById(int id) {
         Optional<Book> book = bookRepository.findById(id);
 
@@ -41,6 +42,7 @@ public class BookServiceImpl implements BookService {
     }
 
     @Transactional
+    @Override
     public String findByName(String name) {
         List<Book> list = bookRepository.findByName(name);
         try {
@@ -51,6 +53,7 @@ public class BookServiceImpl implements BookService {
     }
 
     @Transactional
+    @Override
     public String findAll() {
         Iterable<Book> list = bookRepository.findAll();
         try {
@@ -61,6 +64,7 @@ public class BookServiceImpl implements BookService {
     }
 
     @Transactional
+    @Override
     public Book add(Book book) {
         if (book.getId() != 0)
             throw new IllegalArgumentException("ID of new book generate automatically and must be equal 0 or absent");
@@ -69,6 +73,7 @@ public class BookServiceImpl implements BookService {
     }
 
     @Transactional
+    @Override
     public void update(Book book) {
         if (!bookRepository.existsById(book.getId()))
             throw new IllegalArgumentException("Book (id = " + book.getId() + ") not found");
@@ -77,6 +82,7 @@ public class BookServiceImpl implements BookService {
     }
 
     @Transactional
+    @Override
     public void delete(int id) {
         bookRepository.deleteById(id);
     }

@@ -23,24 +23,25 @@ public class Book {
     private int id;
 
     @Column(name = "name")
-    @ApiModelProperty(value = "Book name", name = "name", required = true)
+    @ApiModelProperty(value = "Book name", name = "name", required = true, example = "The Art of Computer Programming")
     @NotNull
     @Size(min = 1, max = 256)
     private String name;
 
     @Column(name = "publicationYear")
-    @ApiModelProperty(value = "Year of the publication", name = "publicationYear", required = true)
+    @ApiModelProperty(value = "Year of the publication", name = "publicationYear", required = true, example = "1968")
     @YearConstraint
     private int publicationYear;
 
     @Column(name = "annotation")
-    @ApiModelProperty(value = "Book annotation", name = "annotation", required = true)
+    @ApiModelProperty(value = "Book annotation", name = "annotation", required = true, example =
+            "The bible of all fundamental algorithms and the work that taught many of today’s software developers most of what they know about computer programming.")
     @NotNull
     @Size(min = 1, max = 4096)
     private String annotation;
 
     @ManyToMany
-    @JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id")
+    @JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id", scope = Author.class)
     @JoinTable(
             name = "books_authors",
             joinColumns = @JoinColumn(name = "book_id"),

@@ -27,6 +27,7 @@ public class AuthorServiceImpl implements AuthorService {
     private ObjectMapper mapperWithoutAuthorsRef;
 
     @Transactional
+    @Override
     public String findById(int id) {
         Optional<Author> author = authorRepository.findById(id);
 
@@ -41,6 +42,7 @@ public class AuthorServiceImpl implements AuthorService {
     }
 
     @Transactional
+    @Override
     public String findByFullName(String fullName) {
         List<Author> list = authorRepository.findByFullName(fullName);
         try {
@@ -51,6 +53,7 @@ public class AuthorServiceImpl implements AuthorService {
     }
 
     @Transactional
+    @Override
     public String findAll() {
         Iterable<Author> list = authorRepository.findAll();
         try {
@@ -61,6 +64,7 @@ public class AuthorServiceImpl implements AuthorService {
     }
 
     @Transactional
+    @Override
     public Author add(Author author) {
         if (author.getId() != 0)
             throw new IllegalArgumentException("ID of new author generate automatically and must be equal 0 or absent");
@@ -69,6 +73,7 @@ public class AuthorServiceImpl implements AuthorService {
     }
 
     @Transactional
+    @Override
     public void update(Author author) {
         if (!authorRepository.existsById(author.getId()))
             throw new IllegalArgumentException("Author (id = " + author.getId() + ") not found");
@@ -77,6 +82,7 @@ public class AuthorServiceImpl implements AuthorService {
     }
 
     @Transactional
+    @Override
     public void delete(int id) {
         authorRepository.deleteById(id);
     }

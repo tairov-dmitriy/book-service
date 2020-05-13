@@ -1,8 +1,8 @@
 package com.dmitriy.bookservice.integration;
 
 import com.dmitriy.bookservice.BookserviceApplication;
-import com.dmitriy.bookservice.model.Author;
-import com.dmitriy.bookservice.repository.AuthorRepository;
+import com.dmitriy.bookservice.model.Customer;
+import com.dmitriy.bookservice.repository.CustomerRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ser.impl.SimpleBeanPropertyFilter;
 import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider;
@@ -43,16 +43,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureTestDatabase(connection = EmbeddedDatabaseConnection.H2)
 @TestPropertySource(locations = "classpath:test.properties")
 @Sql(scripts = "classpath:test-schema.sql", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
-public class AuthorControllerIntegrationTest {
+public class CustomerControllerIntegrationTest {
 
     @Autowired
     private MockMvc mvc;
 
     @Autowired
-    private AuthorRepository authorRepository;
+    private CustomerRepository customerRepository;
 
     @TestConfiguration
-    static class AuthorControllerTestContextConfiguration {
+    static class CustomerControllerTestContextConfiguration {
 
         @Bean
         @Primary
@@ -60,11 +60,11 @@ public class AuthorControllerIntegrationTest {
             return new ObjectMapper();
         }
 
-        @Bean("mapperWithoutAuthorsRef")
-        ObjectMapper mapperWithoutAuthorsRef() {
+        @Bean("mapperWithoutOrdersRef")
+        ObjectMapper mapperWithoutOrdersRef() {
             ObjectMapper mapperWithoutAuthorsRef = new ObjectMapper();
             mapperWithoutAuthorsRef.setFilterProvider(new SimpleFilterProvider().addFilter("nestedFilter",
-                    SimpleBeanPropertyFilter.serializeAllExcept("authors")));
+                    SimpleBeanPropertyFilter.serializeAllExcept("orders")));
             return mapperWithoutAuthorsRef;
         }
     }
@@ -73,59 +73,59 @@ public class AuthorControllerIntegrationTest {
     private ObjectMapper mapper;
 
     @Autowired
-    @Qualifier("mapperWithoutAuthorsRef")
-    private ObjectMapper mapperWithoutAuthorsRef;
+    @Qualifier("mapperWithoutOrdersRef")
+    private ObjectMapper mapperWithoutOrdersRef;
 
     @After
     public void resetDb() {
-        authorRepository.deleteAll();
+        customerRepository.deleteAll();
     }
 
     @Test
-    public void getAuthors() throws Exception {
+    public void getCustomers() throws Exception {
 
         resetDb();
 
-        Author author = new Author("Author name", 1980);
-        authorRepository.save(author);
+        Customer customer = new Customer("Customer name", "+7-111-111-11-11");
+        customerRepository.save(customer);
 
-        mvc.perform(get("/api/getAuthors")
+        mvc.perform(get("/api/getCustomers")
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].fullName", is(author.getFullName())))
-                .andExpect(jsonPath("$[0].birthYear", is(author.getBirthYear())));
+                .andExpect(jsonPath("$[0].name", is(customer.getName())))
+                .andExpect(jsonPath("$[0].phone", is(customer.getPhone())));
 
-        MvcResult result = mvc.perform(get("/api/getAuthorsByFullName?fullName=Author name")
+        MvcResult result = mvc.perform(get("/api/getCustomersByName?name=Customer name")
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].fullName", is(author.getFullName())))
-                .andExpect(jsonPath("$[0].birthYear", is(author.getBirthYear())))
+                .andExpect(jsonPath("$[0].name", is(customer.getName())))
+                .andExpect(jsonPath("$[0].phone", is(customer.getPhone())))
                 .andReturn();
 
         String response = result.getResponse().getContentAsString();
         Integer id = JsonPath.parse(response).read("$[0].id");
 
-        mvc.perform(get("/api/getAuthorById?id=" + id)
+        mvc.perform(get("/api/getCustomerById?id=" + id)
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.fullName", is(author.getFullName())))
-                .andExpect(jsonPath("$.birthYear", is(author.getBirthYear())));
+                .andExpect(jsonPath("$.name", is(customer.getName())))
+                .andExpect(jsonPath("$.phone", is(customer.getPhone())));
     }
 
     @Test
-    public void addAuthor() throws Exception {
+    public void addCustomer() throws Exception {
 
         resetDb();
 
-        Author author = new Author("Author name", 1980);
-        authorRepository.save(author);
+        Customer customer = new Customer("Customer name", "+7-111-111-11-11");
+        customerRepository.save(customer);
 
-        Author newAuthor = new Author("New author name", 1986);
+        Customer newCustomer = new Customer("New customer name", "+7-222-222-22-22");
 
-        MvcResult result = mvc.perform(post("/api/addAuthor")
-                .content(mapperWithoutAuthorsRef.writeValueAsString(newAuthor))
+        MvcResult result = mvc.perform(post("/api/addCustomer")
+                .content(mapperWithoutOrdersRef.writeValueAsString(newCustomer))
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andReturn();
@@ -133,73 +133,73 @@ public class AuthorControllerIntegrationTest {
         String response = result.getResponse().getContentAsString();
         Integer id = JsonPath.parse(response).read("$.id");
 
-        mvc.perform(get("/api/getAuthorsByFullName?fullName=New author name")
+        mvc.perform(get("/api/getCustomersByName?name=New customer name")
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].fullName", is(newAuthor.getFullName())))
-                .andExpect(jsonPath("$[0].birthYear", is(newAuthor.getBirthYear())));
+                .andExpect(jsonPath("$[0].name", is(newCustomer.getName())))
+                .andExpect(jsonPath("$[0].phone", is(newCustomer.getPhone())));
 
-        mvc.perform(get("/api/getAuthorById?id=" + id)
+        mvc.perform(get("/api/getCustomerById?id=" + id)
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.fullName", is(newAuthor.getFullName())))
-                .andExpect(jsonPath("$.birthYear", is(newAuthor.getBirthYear())));
+                .andExpect(jsonPath("$.name", is(newCustomer.getName())))
+                .andExpect(jsonPath("$.phone", is(newCustomer.getPhone())));
     }
 
     @Test
-    public void updateAuthor() throws Exception {
+    public void updateCustomer() throws Exception {
 
         resetDb();
 
-        Author author = new Author("Author name", 1980);
-        author = authorRepository.save(author);
+        Customer customer = new Customer("Customer name", "+7-111-111-11-11");
+        customerRepository.save(customer);
 
-        Author updatedAuthor = new Author("Updated author name", 1986);
-        updatedAuthor.setId(author.getId());
+        Customer updatedCustomer = new Customer("Updated customer name", "+7-222-222-22-22");
+        updatedCustomer.setId(customer.getId());
 
-        mvc.perform(post("/api/updateAuthor")
-                .content(mapperWithoutAuthorsRef.writeValueAsString(updatedAuthor))
+        mvc.perform(post("/api/updateCustomer")
+                .content(mapperWithoutOrdersRef.writeValueAsString(updatedCustomer))
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
 
-        mvc.perform(get("/api/getAuthorsByFullName?fullName=Updated author name")
+        mvc.perform(get("/api/getCustomersByName?name=Updated customer name")
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].fullName", is(updatedAuthor.getFullName())))
-                .andExpect(jsonPath("$[0].birthYear", is(updatedAuthor.getBirthYear())));
+                .andExpect(jsonPath("$[0].name", is(updatedCustomer.getName())))
+                .andExpect(jsonPath("$[0].phone", is(updatedCustomer.getPhone())));
 
-        mvc.perform(get("/api/getAuthorById?id=" + author.getId())
+        mvc.perform(get("/api/getCustomerById?id=" + customer.getId())
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.fullName", is(updatedAuthor.getFullName())))
-                .andExpect(jsonPath("$.birthYear", is(updatedAuthor.getBirthYear())));
+                .andExpect(jsonPath("$.name", is(updatedCustomer.getName())))
+                .andExpect(jsonPath("$.phone", is(updatedCustomer.getPhone())));
     }
 
     @Test
-    public void deleteAuthor() throws Exception {
+    public void deleteCustomer() throws Exception {
         resetDb();
 
-        Author author = new Author("Author name", 1980);
-        author = authorRepository.save(author);
+        Customer customer = new Customer("Customer name", "+7-111-111-11-11");
+        customerRepository.save(customer);
 
-        mvc.perform(get("/api/deleteAuthor?id=" + author.getId())
+        mvc.perform(get("/api/deleteCustomer?id=" + customer.getId())
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
 
-        mvc.perform(get("/api/getAuthorsByFullName?fullName=Author name")
+        mvc.perform(get("/api/getCustomersByName?name=Customer name")
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(0)));
 
         try {
-            mvc.perform(get("/api/getAuthorById?id=" + author.getId())
+            mvc.perform(get("/api/getCustomerById?id=" + customer.getId())
                     .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isOk());
-            fail("Not existed author was founded");
+            fail("Not existed customer was founded");
         } catch (Exception ex) {
-            assertTrue(ex.getMessage().contains("Author (id = " + author.getId() + ") not found"));
+            assertTrue(ex.getMessage().contains("Customer (id = " + customer.getId() + ") not found"));
         }
     }
 }

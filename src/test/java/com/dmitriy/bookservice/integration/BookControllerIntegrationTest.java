@@ -64,14 +64,6 @@ public class BookControllerIntegrationTest {
                     SimpleBeanPropertyFilter.serializeAllExcept("books")));
             return mapperWithoutBooksRef;
         }
-
-        @Bean("mapperWithoutAuthorsRef")
-        ObjectMapper mapperWithoutAuthorsRef() {
-            ObjectMapper mapperWithoutAuthorsRef = new ObjectMapper();
-            mapperWithoutAuthorsRef.setFilterProvider(new SimpleFilterProvider().addFilter("nestedFilter",
-                    SimpleBeanPropertyFilter.serializeAllExcept("authors")));
-            return mapperWithoutAuthorsRef;
-        }
     }
 
     @Autowired
@@ -80,10 +72,6 @@ public class BookControllerIntegrationTest {
     @Autowired
     @Qualifier("mapperWithoutBooksRef")
     private ObjectMapper mapperWithoutBooksRef;
-
-    @Autowired
-    @Qualifier("mapperWithoutAuthorsRef")
-    private ObjectMapper mapperWithoutAuthorsRef;
 
     @After
     public void resetDb() {

@@ -3,12 +3,15 @@ package com.dmitriy.bookservice.integration;
 import com.dmitriy.bookservice.BookserviceApplication;
 import com.dmitriy.bookservice.model.Author;
 import com.dmitriy.bookservice.model.Book;
+import com.dmitriy.bookservice.model.Customer;
+import com.dmitriy.bookservice.model.Order;
 import com.dmitriy.bookservice.repository.AuthorRepository;
 import com.dmitriy.bookservice.repository.BookRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ser.impl.SimpleBeanPropertyFilter;
 import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider;
 import com.jayway.jsonpath.JsonPath;
+import org.hamcrest.core.IsNull;
 import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -28,6 +31,10 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -77,6 +84,22 @@ public class MainIntegrationTest {
                     SimpleBeanPropertyFilter.serializeAllExcept("authors")));
             return mapperWithoutAuthorsRef;
         }
+
+        @Bean("mapperWithoutOrdersRef")
+        ObjectMapper mapperWithoutOrdersRef() {
+            ObjectMapper mapperWithoutAuthorsRef = new ObjectMapper();
+            mapperWithoutAuthorsRef.setFilterProvider(new SimpleFilterProvider().addFilter("nestedFilter",
+                    SimpleBeanPropertyFilter.serializeAllExcept("orders")));
+            return mapperWithoutAuthorsRef;
+        }
+
+        @Bean("mapperWithoutAuthorsAndOrdersRef")
+        ObjectMapper mapperWithoutAuthorsAndOrdersRef() {
+            ObjectMapper mapperWithoutAuthorsAndOrdersRef = new ObjectMapper();
+            mapperWithoutAuthorsAndOrdersRef.setFilterProvider(new SimpleFilterProvider().addFilter("nestedFilter",
+                    SimpleBeanPropertyFilter.serializeAllExcept("authors", "orders")));
+            return mapperWithoutAuthorsAndOrdersRef;
+        }
     }
 
     @Autowired
@@ -89,6 +112,14 @@ public class MainIntegrationTest {
     @Autowired
     @Qualifier("mapperWithoutAuthorsRef")
     private ObjectMapper mapperWithoutAuthorsRef;
+
+    @Autowired
+    @Qualifier("mapperWithoutOrdersRef")
+    private ObjectMapper mapperWithoutOrdersRef;
+
+    @Autowired
+    @Qualifier("mapperWithoutAuthorsAndOrdersRef")
+    private ObjectMapper mapperWithoutAuthorsAndOrdersRef;
 
     @After
     public void resetDb() {
@@ -243,5 +274,104 @@ public class MainIntegrationTest {
                 .andExpect(jsonPath("$.authors[0].id", is(id)))
                 .andExpect(jsonPath("$.authors[0].fullName", is(newAuthor.getFullName())))
                 .andExpect(jsonPath("$.authors[0].birthYear", is(newAuthor.getBirthYear())));
+    }
+
+    @Test
+    public void addAuthorBooksCustomerOrders() throws Exception {
+
+        resetDb();
+
+        Book newBook1 = new Book("New book name", 2011, "Book annotation");
+
+        MvcResult result = mvc.perform(post("/api/addBook")
+                .content(mapperWithoutBooksRef.writeValueAsString(newBook1))
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        String response = result.getResponse().getContentAsString();
+        newBook1.setId(JsonPath.parse(response).read("$.id"));
+
+        Book newBook2 = new Book("New book name 2", 2014, "Book annotation 2");
+
+        result = mvc.perform(post("/api/addBook")
+                .content(mapperWithoutBooksRef.writeValueAsString(newBook2))
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        response = result.getResponse().getContentAsString();
+        newBook2.setId(JsonPath.parse(response).read("$.id"));
+
+        Author newAuthor = new Author("New author name", 1983);
+        newAuthor.getBooks().add(newBook1);
+        newAuthor.getBooks().add(newBook2);
+
+        mvc.perform(post("/api/addAuthor")
+                .content(mapperWithoutAuthorsRef.writeValueAsString(newAuthor))
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk());
+
+        Customer customer = new Customer("Customer name", "+7-222-222-22-22");
+
+        result = mvc.perform(post("/api/addCustomer")
+                .content(mapperWithoutOrdersRef.writeValueAsString(customer))
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        response = result.getResponse().getContentAsString();
+        Integer customerId = JsonPath.parse(response).read("$.id");
+        customer.setId(customerId);
+
+        Date date = new Date();
+        String formatted = new SimpleDateFormat("dd.MM.yyyy").format(date);
+
+        Order order1 = new Order(customer, date);
+        order1.setCompleted(true);
+        order1.setCompleteDate(date);
+        order1.getBooks().add(newBook1);
+
+        mvc.perform(post("/api/addOrder")
+                .content(mapperWithoutAuthorsAndOrdersRef.writeValueAsString(order1))
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk());
+
+        Order order2 = new Order(customer, date);
+        order2.getBooks().add(newBook1);
+        order2.getBooks().add(newBook2);
+
+        mvc.perform(post("/api/addOrder")
+                .content(mapperWithoutAuthorsAndOrdersRef.writeValueAsString(order2))
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk());
+
+        mvc.perform(get("/api/getCustomerById?id=" + customerId)
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name", is(customer.getName())))
+                .andExpect(jsonPath("$.phone", is(customer.getPhone())))
+                .andExpect(jsonPath("$.orders", hasSize(2)))
+                .andExpect(jsonPath("$.orders[0].creationDate", is(formatted)))
+                .andExpect(jsonPath("$.orders[0].completeDate", is(formatted)))
+                .andExpect(jsonPath("$.orders[0].completed", is(true)))
+                .andExpect(jsonPath("$.orders[1].creationDate", is(formatted)))
+                .andExpect(jsonPath("$.orders[1].completeDate", IsNull.nullValue()))
+                .andExpect(jsonPath("$.orders[1].completed", is(false)))
+                .andExpect(jsonPath("$.orders[0].books", hasSize(1)))
+                .andExpect(jsonPath("$.orders[1].books", hasSize(2)));
+
+        mvc.perform(get("/api/getOrdersByCustomerId?id=" + customerId)
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(2)))
+                .andExpect(jsonPath("$[0].creationDate", is(formatted)))
+                .andExpect(jsonPath("$[0].completeDate", is(formatted)))
+                .andExpect(jsonPath("$[0].completed", is(true)))
+                .andExpect(jsonPath("$[1].creationDate", is(formatted)))
+                .andExpect(jsonPath("$[1].completeDate", IsNull.nullValue()))
+                .andExpect(jsonPath("$[1].completed", is(false)))
+                .andExpect(jsonPath("$[0].books", hasSize(1)))
+                .andExpect(jsonPath("$[1].books", hasSize(2)));
     }
 }

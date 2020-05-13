@@ -23,18 +23,18 @@ public class Author {
     private int id;
 
     @Column(name = "fullName")
-    @ApiModelProperty(value = "Author full name", name = "fullName", required = true)
+    @ApiModelProperty(value = "Author full name", name = "fullName", required = true, example = "Donald Knuth")
     @NotNull
     @Size(min = 1, max = 256)
     private String fullName;
 
     @Column(name = "birthYear")
-    @ApiModelProperty(value = "Year of birth", name = "birthYear", required = true)
+    @ApiModelProperty(value = "Year of birth", name = "birthYear", required = true, example = "1938")
     @YearConstraint
     private int birthYear;
 
     @ManyToMany
-    @JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id")
+    @JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id", scope = Book.class)
     @JoinTable(
             name = "books_authors",
             joinColumns = @JoinColumn(name = "author_id"),
